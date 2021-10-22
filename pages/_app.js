@@ -54,7 +54,6 @@ function MyProvider(props) {
 class MyApp extends App {
   render() {
     const { Component, pageProps, host, shop } = this.props;
-    console.log(shop, 'shopshopshop')
     return (
       <AppProvider i18n={translations}>
         <Provider
@@ -68,6 +67,7 @@ class MyApp extends App {
             Component={Component}
             {...pageProps}
             shopOrigin={shop}
+            shop={shop}
           />
         </Provider>
       </AppProvider>
@@ -76,7 +76,6 @@ class MyApp extends App {
 }
 
 MyApp.getInitialProps = async ({ ctx }) => {
-  console.log(ctx.query.shop, ctx.query.host, 'ctx.query.shop')
   return {
     host: ctx.query.host,
     shop: ctx.query.shop,

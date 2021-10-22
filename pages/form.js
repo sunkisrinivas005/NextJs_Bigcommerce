@@ -18,8 +18,7 @@ const Form = (props) => {
   const [advertiserID, setValue] = useState("");
   const [aid, setAid] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const {shopOrigin} = props;
-  console.log(props, 'shop')
+  const { shopOrigin } = props;
   const [createScripts] = useMutation(CREATE_SCRIPT_TAG);
   const [successMessage, setSuccessMessage] = useState("");
   const [active, setActive] = useState(false);
@@ -27,7 +26,7 @@ const Form = (props) => {
   const [password, setPassword] = useState("");
   const [loginError, setLoginErrorMessage] = useState("");
   const [isLoading, setLoading] = useState(false);
-  const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitLoading, setSubmitLoading] = React.useState(false);
   const [getAdvertiserDetails, setGetAdvertiserDetails] = useState(false);
 
   const toggleActive = useCallback(() => {
@@ -38,7 +37,6 @@ const Form = (props) => {
   }, []);
 
   const installScript = () => {
-    setSubmitLoading(true);
     addAdvertiser();
   };
 
@@ -49,58 +47,57 @@ const Form = (props) => {
   };
 
   const addAdvertiser = () => {
-    fetch(
-      "https://advertiserpro.flexoffers.com/api/" +
-        advertiserID +
-        "/shopifystore",
-      {
-        method: "POST",
-        body: JSON.stringify({ StoreName: shopOrigin, Aid: aid }),
-        headers: {
-          "Content-type": "application/json; charset=UTF-8",
-          "Access-Control-Allow-Origin": true,
-        },
-      }
-    )
-      .then((response) => response.json())
-      .then((json) => {
-        const { errorMessage } = json;
-        if (errorMessage === null) {
-          createScripts({
-            variables: {
-              input: {
-                src:
-                  window.location.origin +
-                  "/public/flexOffers-shopify.js?ADVID=" +
-                  aid,
-                displayScope: "ALL",
-              },
+    setSubmitLoading(true);
+    const data = { StoreName: `https://${shopOrigin}/`, Aid: aid };
+    const headers = {
+      "Content-type": "application/json; charset=UTF-8",
+      "Access-Control-Allow-Origin": true,
+    };
+    axios
+      .post(
+        "https://advertiserpro.flexoffers.com/api/" +
+          advertiserID +
+          "/shopifystore",
+        data,
+        headers
+      )
+      .then((res) => {
+        const { data } = res;
+        const ID = _.get(data, "result");
+        createScripts({
+          variables: {
+            input: {
+              src: window.location.origin + "/public/flexOffers.js?ADVID=" + ID,
+              displayScope: "ALL",
             },
-          });
-          setSubmitLoading(false);
-          setSuccessMessage(
-            `Conversion Tracking successfully installed for ${advertiserID}`
-          );
-        } else {
-          setErrorMessage(errorMessage);
-          setSuccessMessage("");
-          setTimeout(() => setErrorMessage(""), 5000);
-        }
+          },
+        });
+        setSuccessMessage(
+          `Conversion Tracking successfully installed for ${advertiserID}`
+        );
+        setSubmitLoading(false);
       })
-      .catch((err) => {});
+      .catch((err) => {
+        const message = _.get(err, "response.data.errorMessage");
+        setErrorMessage(message);
+        setSuccessMessage("");
+        setSubmitLoading(false);
+        setTimeout(() => setErrorMessage(""), 5000);
+      });
   };
 
   const handleLogin = async () => {
     let data = {
       email,
       password,
+      storename: `https://${shopOrigin}/`,
     };
     let headers = {
       "Content-type": "application/json; charset=UTF-8",
       "Access-Control-Allow-Origin": "*",
     };
-    setLoading(true);
     if (email.length && password.length) {
+      setLoading(true);
       axios
         .post(
           "https://advertiserpro.flexoffers.com/api/shopifystore/ShopLogin",
@@ -118,7 +115,6 @@ const Form = (props) => {
           setLoading(false);
         })
         .catch((err) => {
-          // console.log(err, err.response, err.message, 'testing...')
           let errorMessage = err.response.data.errorMessage
             ? err.response.data.errorMessage
             : "";
@@ -133,7 +129,6 @@ const Form = (props) => {
         <Layout.Section>
           <Card sectioned>
             <>
-              {}
               {getAdvertiserDetails ? (
                 <>
                   <h2
@@ -146,7 +141,7 @@ const Form = (props) => {
                     <p style={{ fontSize: "16px" }}>
                       <strong>
                         The FlexOffers network provided us with your Advertiser
-                        ID and AID.
+                        ID and Advertiser Tracking ID.
                       </strong>
                     </p>
                   </div>
@@ -200,7 +195,7 @@ const Form = (props) => {
                       >
                         click here
                       </span>
-                      to get Advertiser ID and AID )
+                      to get Advertiser ID and Advertiser Tracking ID )
                     </p>
                   </div>
                 </>
@@ -218,7 +213,7 @@ const Form = (props) => {
                   </div>
                   <TextField
                     name="aid"
-                    label="AID"
+                    label="Advertiser Tracking ID"
                     value={aid}
                     onChange={(e) => setAid(e)}
                     align="left"

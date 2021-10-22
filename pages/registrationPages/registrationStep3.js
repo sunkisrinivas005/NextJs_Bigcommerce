@@ -20,22 +20,21 @@ class RegistrationStep3 extends React.Component {
 
   componentDidMount() {
     const that = this;
-    // Promise.all([
-    //   that.registerAdvertiser(),
-    //   new Promise((resolve) => setTimeout(() => resolve(), 1000)),
-    // ])
-    //   .then(() => {
-    //     this.setState({ submitting: false });
-    //   })
-    //   .catch((err) => {
-    //     const { message } = err;
-    //     // console.log(err, 'tst')
-    //     this.setState({
-    //       errorMessage: message,
-    //       errorPop: true,
-    //       submitting: false,
-    //     });
-    //   });
+    Promise.all([
+      that.registerAdvertiser(),
+      new Promise((resolve) => setTimeout(() => resolve(), 1000)),
+    ])
+      .then(() => {
+        this.setState({ submitting: false });
+      })
+      .catch((err) => {
+        const { message } = err;
+        this.setState({
+          errorMessage: message,
+          errorPop: true,
+          submitting: false,
+        });
+      });
   }
 
   registerAdvertiser = () => {

@@ -6,14 +6,25 @@ import Shopify, { ApiVersion } from "@shopify/shopify-api";
 import Koa from "koa";
 import next from "next";
 import Router from "koa-router";
+const koaBody = require("koa-body");
+const logger = require("../logger.js");
+const session = require("koa-session");
+const serve = require("koa-static");
+var rp = require("request-promise");
+const mount = require("koa-mount");
+const fs = require("fs");
+var http = require("http");
+var https = require("https");
 
 dotenv.config();
-const port = parseInt(process.env.PORT, 10) || 8081;
+const port = parseInt(process.env.PORT, 10) || 443;
 const dev = process.env.NODE_ENV !== "production";
 const app = next({
   dev,
 });
 const handle = app.getRequestHandler();
+
+console.log(process.env.SCOPES.split(","), "test");
 
 Shopify.Context.initialize({
   API_KEY: process.env.SHOPIFY_API_KEY,
@@ -58,22 +69,53 @@ app.prepare().then(async () => {
         }
 
         // Redirect to app with shop parameter upon auth
-          ctx.redirect(`/?shop=${shop}&host=${host}`);
+        ctx.redirect(`/?shop=${shop}&host=${host}`);
       },
     })
   );
-
+  //server.use(verifyRequest());
   const handleRequest = async (ctx) => {
+    //console.log("CTX", ctx);
     await handle(ctx.req, ctx.res);
     ctx.respond = false;
     ctx.res.statusCode = 200;
   };
 
+  const handleDeleteRequest = (ctx, next) => {
+    console.log(ctx.query.shop, "ctx.query.shop");
+    next();
+  };
+
+  router.get("/", async (ctx) => {
+    console.log("Shop Initialization Method Called");
+    //console.log("CTX", ctx);
+    //const shop = process.env.SHOP;
+    const shop = ctx.query.shop;
+    console.log("Shop", shop);
+    console.log("Active Shopify", ACTIVE_SHOPIFY_SHOPS);
+    // This shop hasn't been seen yet, go through OAuth to create a session
+    if (ACTIVE_SHOPIFY_SHOPS[shop] === undefined) {
+      ctx.redirect(`/auth?shop=${shop}`);
+    } else {
+      await handleRequest(ctx);
+    }
+  });
+
+  router.get("/hello", verifyRequest(), async (ctx) => {
+    ctx.body = "Hello";
+  });
+
+  const options = {
+    key: fs.readFileSync("./cert/server.key"),
+    cert: fs.readFileSync("./cert/server.cert"),
+  };
+
   router.post("/webhooks", async (ctx) => {
     try {
       await Shopify.Webhooks.Registry.process(ctx.req, ctx.res);
-      console.log(`Webhook processed, returned status code 200`);
+      console.log(ctx, `Webhook processed, returned status code 200`);
     } catch (error) {
+      logger.error("Whooops! This broke with error: ", error);
       console.log(`Failed to process webhook: ${error}`);
     }
   });
@@ -88,20 +130,75 @@ app.prepare().then(async () => {
 
   router.get("(/_next/static/.*)", handleRequest); // Static content is clear
   router.get("/_next/webpack-hmr", handleRequest); // Webpack content is clear
-  router.get("(.*)", async (ctx) => {
-    const shop = ctx.query.shop;
+  router.get("(.*)", verifyRequest(), handleRequest); // Everything else must have sessions
 
-    // This shop hasn't been seen yet, go through OAuth to create a session
-    if (ACTIVE_SHOPIFY_SHOPS[shop] === undefined) {
-      ctx.redirect(`/auth?shop=${shop}`);
-    } else {
-      await handleRequest(ctx);
+  //GDPR Mandatory Webhooks
+  router.post(
+    "/webhook/customers/data_request",
+    koaBody(),
+    handleDeleteRequest,
+    (ctx, next) => {
+      const shop = ctx.request.body.shop_domain;
+      if (!shop) {
+        ctx.throw(400, "cant find shop name");
+      }
+      ctx.status = 200;
+      ctx.body = {
+        status: 200,
+        message: "records deleted successfully",
+      };
+      next();
     }
+  );
+  router.post("/webhook/customers/redact", koaBody(), (ctx, next) => {
+    const shop = ctx.request.body.shop_domain;
+    if (!shop) {
+      ctx.throw(400, "cant find shop name");
+    }
+    ctx.status = 200;
+    ctx.body = {
+      status: 200,
+      message: "Records deleted successfully",
+    };
+    next();
   });
+  router.post("/webhook/shop/redact", koaBody(), async (ctx, next) => {
+    console.log(ctx.request, "ctx.request");
+    const shop = ctx.request.body.shop_domain;
+    if (!shop) {
+      ctx.throw(400, "cant find shop name");
+    }
+    ctx.status = 200;
+    ctx.body = {
+      status: 200,
+      message: "Records deleted successfully",
+    };
+  });
+  //server.use(async (ctx) => {
+  //console.log("CALLED 1");
 
-  server.use(router.allowedMethods());
+  //   await handle(ctx.req, ctx.res);
+
+  //    ctx.respond = false;
+  //  ctx.res.statusCode = 200;
+  //});
+
+  server.use(mount("/public", serve("./public")));
   server.use(router.routes());
-  server.listen(port, () => {
-    console.log(`> Ready on http://localhost:${port}`);
-  });
+  //server.proxy = true;
+  let serverCallback = server.callback();
+  try {
+    var httpsServer = https.createServer(options, serverCallback);
+    httpsServer.listen(port, function (err) {
+      if (!!err) {
+        console.error("HTTPS server FAIL: ", err, err && err.stack);
+      } else {
+        logger.info(`Express.js listening on port {port}.`);
+        console.log(`HTTPS server OK: https://localhost:${port}`);
+      }
+    });
+  } catch (ex) {
+    logger.error("Whooops! This broke with error: ", ex);
+    console.error("Failed to start HTTPS server\n", ex, ex && ex.stack);
+  }
 });

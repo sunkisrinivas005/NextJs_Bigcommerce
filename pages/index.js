@@ -12,42 +12,19 @@ import {
   DataTable,
   Tabs,
 } from "@shopify/polaris";
-import { makeStyles } from "@material-ui/core/styles";
 import Link from "next/link";
 import React from "react";
 import axios from "axios";
 import { useQuery, useMutation } from "@apollo/react-hooks";
 import Modal from "./Components/modal";
-// import moment from "moment";
-import _ from "lodash";
+import moment from "moment";
+import _, { get } from "lodash";
 import * as FileSaver from "file-saver";
 import { GET_SCRIPTS_TAG, DELETE_SCRIPT_TAG } from "../mutations";
 
-// const useStyles = makeStyles((theme) => ({
-//   container: {
-//     display: "flex",
-//     flexWrap: "wrap",
-//   },
-//   textField: {
-//     marginLeft: theme.spacing(1),
-//     marginRight: theme.spacing(1),
-//     width: 200,
-//   },
-//   labelRoot: {
-//     fontSize: 12,
-//   },
-//   inputRoot: {
-//     fontSize: 12,
-//   },
-//   input: {
-//     width: "200px",
-//   },
-// }));
 var offset = -300;
 const Index = (props) => {
-  const { shopOrigin } = props;
-  console.log(shopOrigin, 'shopOrigin')
-  // const classes = useStyles();
+  const { shop, shopOrigin } = props;
   const today = new Date(new Date().getTime() + offset * 60 * 1000);
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() - 10);
@@ -77,14 +54,11 @@ const Index = (props) => {
     []
   );
 
-  console.log(data, "data");
-
   const deleteRecords = () => {
     axios
-      .post(
-        `https://advertiserpro.dev.flexoffers.com/api/shopifystore/uninstall`,
-        { shop: shopOrigin }
-      )
+      .post(`https://advertiserpro.flexoffers.com/api/shopifystore/uninstall`, {
+        shop: `https://${shop}/`,
+      })
       .then((res) => {
         setLoading(false);
         setAdvertiserID("");
@@ -100,11 +74,6 @@ const Index = (props) => {
   const [deleteScripts] = useMutation(DELETE_SCRIPT_TAG, {
     update: deleteRecords,
   });
-
-  const toggleActive = React.useCallback(() => {
-    modalActive === false && setLoading(false);
-    modalSetActive((modalActive) => !modalActive);
-  }, []);
 
   const handleDeleteScriptTag = () => {
     setLoading(true);
@@ -125,42 +94,41 @@ const Index = (props) => {
       });
   };
 
-  React.useEffect(() => {
-    if (!data && !_.get(data, "scriptTags.edges")) {
-      console.log("test", _.isEmpty(data));
+  const handleCheckLogic = () => {
+    if (data != undefined && _.isEmpty(data.scriptTags.edges)) {
       axios
         .post(
           `https://advertiserpro.flexoffers.com/api/shopifystore/uninstall`,
-          { shop: shopOrigin }
+          { shop: `https://${shop}/` }
         )
-        .then((res) => {
-          console.log(res, "res");
-        })
+        .then((res) => res)
         .catch((err) => {
-          console.log(err, "err");
+          // console.log(err, "err");
         });
+    } else {
+      return null;
     }
-  }, [_.get(data, "scriptTags.edges")]);
+  };
+
+  React.useEffect(() => {
+    handleCheckLogic();
+  }, [loading, _.get(data, "scriptTags.edges")]);
 
   const handleGetDetails = React.useCallback(async () => {
     await axios
       .get(
-        `https://advertiserpro.flexoffers.com/api/shopifystore/advertiserDetails?storeName=${shopOrigin}`
+        `https://advertiserpro.flexoffers.com/api/shopifystore/advertiserDetails?storeName=https://${shop}/`
       )
       .then((res) => {
-        let { advertiserId } = res.data.result;
-        setAdvertiserID(advertiserId);
-        handleGetOrderDetails(advertiserId);
+        let { advertiserId, errorMessage } = res.data.result;
+        if (!errorMessage) {
+          setAdvertiserID(advertiserId);
+          handleGetOrderDetails(advertiserId);
+        }
       })
       .catch((err) => {
         let errorMessage = _.get(err, "response.data.errorMessage");
-        // errorMessage !== '' && setErrorMessage(
-        //   errorMessage
-        //     ? errorMessage
-        //     : "Something went wrong. please contact support"
-        // );
-        // setErrorPop(true);
-        // setTimeout(() => setErrorPop(false), 5000);
+        // console.log(errorMessage)
       });
   }, []);
   React.useEffect(() => {
@@ -168,9 +136,8 @@ const Index = (props) => {
   }, [handleGetDetails]);
 
   const handleGetOrderDetails = (id) => {
-    // const advId = id ? id : advertiserDetails;
     const data = {
-      StoreName: `https://${shopOrigin}/`,
+      StoreName: `https://${shop}/`,
     };
     axios
       .post(
@@ -179,27 +146,32 @@ const Index = (props) => {
       )
       .then((res) => {
         const { result } = res.data;
-        const orderList =
-          result && result.reportDetails ? result.reportDetails : [];
-        let ordersLocal = [];
-        orderList &&
-          orderList.forEach((i) => {
-            let newARR = [];
-            newARR.push(_.get(i, "id"));
-            newARR.push(_.get(i, "orderNumber"));
-            newARR.push(_.get(i, "dateClicked"));
-            newARR.push(_.get(i, "datePostedDisplayValue"));
-            newARR.push(_.get(i, "saleAmount"));
-            newARR.push(_.get(i, "domainId"));
-            newARR.push(_.get(i, "domain"));
-            ordersLocal.push(newARR);
-          });
-        ordersLocal = ordersLocal.length ? ordersLocal : [];
-        setOrders(ordersLocal);
+        const { errorMessage, reportDetails } = result;
+        if (!errorMessage) {
+          const orderList = reportDetails ? reportDetails : [];
+          let ordersLocal = [];
+          orderList &&
+            orderList.forEach((i) => {
+              let newARR = [];
+              newARR.push(_.get(i, "id"));
+              newARR.push(_.get(i, "orderNumber"));
+              newARR.push(_.get(i, "dateClicked"));
+              newARR.push(_.get(i, "datePostedDisplayValue"));
+              newARR.push(_.get(i, "saleAmount"));
+              newARR.push(_.get(i, "domainId"));
+              newARR.push(_.get(i, "domain"));
+              ordersLocal.push(newARR);
+            });
+          ordersLocal = ordersLocal.length ? ordersLocal : [];
+          setOrders(ordersLocal);
+        } else {
+          setErrorMessage("No transactions found for the last 7 days");
+          setErrorPop(true);
+          setTimeout(() => setErrorPop(false), 5000);
+        }
         setOrdersLoading(false);
       })
       .catch((err) => {
-        console.log(err, "errr");
         setOrdersLoading(false);
       });
   };
@@ -220,20 +192,33 @@ const Index = (props) => {
           "&EndDate=" +
           endDate +
           "&storeName=https://" +
-          shopOrigin +
+          shop +
           "/",
         { responseType: "blob" }
       )
       .then((res) => {
-        FileSaver.saveAs(
-          res.data,
-          `salesDetails_${moment(startDate).format("MM-DD-YYYY")}-${moment(
-            endDate
-          ).format("MM-DD-YYYY")}.xlsx`
-        );
+        if (get(res, "data.size") <= 200) {
+          setErrorMessage("No records found for the search criteria entered");
+          setErrorPop(true);
+          setTimeout(() => setErrorPop(false), 5000);
+        } else {
+          FileSaver.saveAs(
+            res.data,
+            `salesDetails_${moment(startDate).format("MM-DD-YYYY")}-${moment(
+              endDate
+            ).format("MM-DD-YYYY")}.xlsx`
+          );
+        }
       })
       .catch((err) => {
-        console.log(err, "errr");
+        let errorStatus = _.get(err, "response.status");
+        setErrorMessage(
+          errorStatus < 500
+            ? "No records found for the search criteria entered"
+            : "Something went wrong. please contact support"
+        );
+        setErrorPop(true);
+        setTimeout(() => setErrorPop(false), 5000);
       });
   };
 
@@ -270,7 +255,7 @@ const Index = (props) => {
                 <Spinner accessibilityLabel="Spinner example" size="large" />
               </div>
             </Card>
-          ) : advertiserDetails && !_.isEmpty(data) ? (
+          ) : advertiserDetails && !_.isEmpty(data.scriptTags.edges) ? (
             <>
               <Card sectioned>
                 <div
@@ -279,11 +264,6 @@ const Index = (props) => {
                 >
                   <div className="col-lg-6">
                     <h1 element="h1">Welcome Back!</h1>
-                  </div>
-                  <div className="col-lg-6" style={{ textAlign: "right" }}>
-                    <Button primary={true} onClick={() => toggleActive()}>
-                      Uninstall
-                    </Button>
                   </div>
                   <Tabs
                     tabs={tabs}
@@ -345,6 +325,8 @@ const Index = (props) => {
                                 "numeric",
                                 "numeric",
                                 "numeric",
+                                "text",
+                                "text",
                               ]}
                               headings={[
                                 "Sale ID",
@@ -406,7 +388,7 @@ const Index = (props) => {
                     >
                       <Heading>New Customer</Heading>
                       <Link
-                        href={{ pathname: "/register", query: { shop: shopOrigin } }}
+                        href={{ pathname: "/register", query: { shop: shop } }}
                       >
                         <p style={{ fontSize: "14px" }}>
                           If this is your first time using FlexOffers,{" "}
@@ -433,23 +415,6 @@ const Index = (props) => {
             )}
           </Frame>
         </Layout.Section>
-        <Modal
-          isModal={modalActive}
-          handleLogin={handleDeleteScriptTag}
-          toggleActive={toggleActive}
-          from={"Dashboard"}
-          large={false}
-          HeaderTag="Uninstall FlexOffers Affiliate Marketing?"
-          isLoading={isLoading}
-        >
-          <div>
-            <h4>
-              By deleting this app, you will no longer be able to track
-              Affiliate Traffic and Conversions
-            </h4>
-            {deleteErrorMessage}
-          </div>
-        </Modal>
       </Layout>
     </Page>
   );

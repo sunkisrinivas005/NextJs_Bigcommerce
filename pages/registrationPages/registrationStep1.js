@@ -17,17 +17,20 @@ const styles = (theme) => ({
     justifyContent: "center",
   },
   button: {
-    margin: theme.spacing.unit,
     contrastText: "white",
-    backgroundColor: "#05bfa5",
+    backgroundColor: "#002366",
   },
   inputRoot: {
-    fontSize: 12,
+    fontSize: 14,
   },
   labelRoot: {
-    fontSize: 12,
+    fontSize: 14,
   },
 });
+
+const helperTextProps = {
+  style: { fontSize: "14px" },
+};
 
 class RegistrationStep1 extends React.Component {
   componentDidMount() {
@@ -66,12 +69,10 @@ class RegistrationStep1 extends React.Component {
 
     return (
       <ValidatorForm onSubmit={props.handleNext} autoComplete="off">
-        <Grid container spacing={32}>
+        <Grid container>
           <Grid
             item
             md={12}
-            spacing={1}
-            justifyContent="space-between"
             style={{
               paddingTop: "30px",
               paddingBottom: "0px",
@@ -95,7 +96,6 @@ class RegistrationStep1 extends React.Component {
             item
             sm={12}
             md={5}
-            justifyContent="center"
             style={{
               padding: "15px 10px",
               margin: "0px 20px",
@@ -118,13 +118,9 @@ class RegistrationStep1 extends React.Component {
               placeholder="First name"
               helperText="Required field"
               validators={["required"]}
-              // InputProps={{
-              //     classes: {
-              //       input: classes.resize,
-              //     },
-              //   }}
               errorMessages={["This field is required."]}
               onChange={props.handleChange("firstName")}
+              FormHelperTextProps={helperTextProps}
             />
             <TextValidator
               InputProps={{ classes: { root: classes.inputRoot } }}
@@ -165,28 +161,33 @@ class RegistrationStep1 extends React.Component {
               onChange={props.handleChange("emailAddress")}
             />
           </Grid>
-          <Grid item sm={12} md={6} style={{ backgroundColor: "white" }}>
-          <TextValidator
-            InputProps={{ classes: { root: classes.inputRoot } }}
-            InputLabelProps={{
-              classes: {
-                root: classes.labelRoot,
-                focused: classes.labelFocused,
-              },
-            }}
+          <Grid
+            item
+            sm={12}
+            md={6}
+            style={{ backgroundColor: "white", marginTop: "12px" }}
+          >
+            <TextValidator
+              InputProps={{ classes: { root: classes.inputRoot } }}
+              InputLabelProps={{
+                classes: {
+                  root: classes.labelRoot,
+                  focused: classes.labelFocused,
+                },
+              }}
               name="password"
               fullWidth={true}
               value={props.password}
-              style={{ height: '75px' }}
+              style={{ height: "75px", width: "90%" }}
               label="Password"
               placeholder="Password"
               helperText="Required field"
-              validators={['required', 'isPasswordStrong']}
+              validators={["required", "isPasswordStrong"]}
               errorMessages={[
-                'This field is required.',
-                'Password must contain at least 8 characters, including at least one number, one symbol and one upper case letter.',
+                "This field is required.",
+                "Password must contain at least 8 characters, including at least one number, one symbol and one upper case letter.",
               ]}
-              onChange={props.handleChange('password')}
+              onChange={props.handleChange("password")}
               type="password"
             />
             <TextValidator

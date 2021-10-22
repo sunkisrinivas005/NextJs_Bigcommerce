@@ -19,30 +19,19 @@ const useStyles = () => ({
   root: {
     width: "100%",
     padding: "20px",
-    // backgroundColor:'white',
-    justifyContent: "center",
     alignSelf: "center",
   },
   backButton: {
-    marginRight: '10px',
+    marginRight: "10px",
   },
   instructions: {
-    marginTop: '10px',
-    marginBottom: '10px',
+    marginTop: "10px",
+    marginBottom: "10px",
   },
   resize: {
     fontSize: 50,
   },
 });
-
-// const theme = createMuiTheme({
-//   palette: {
-//     primary: {
-//       main: "#05bfa5",
-//       contrastText: "#fff", //button text white instead of black
-//     },
-//   },
-// });
 
 function getSteps() {
   return ["Your Information", "Company Information", "Done"];
@@ -66,6 +55,26 @@ const Register = () => {
   const [registration, setRegistration] = React.useState({
     phoneNumberErrorRequired: true,
     promoCode: "SHOPIFY",
+    firstName: "",
+    lastName: "",
+    emailAddress: "",
+    password: "",
+    confirmPassword: "",
+    securityQuestion: "",
+    securityAnswer: "",
+    companyName: "",
+    website: "",
+    phone: "",
+    phoneExt: "",
+    agencyQuestion: "",
+    agencyUrl: "",
+    referralQuestion: "",
+    address1: "",
+    address2: "",
+    state: "",
+    city: "",
+    country: "",
+    zipCode: "",
   });
   const [activeStep, setActiveStep] = React.useState(0);
   const [countries, setCountries] = React.useState([]);
@@ -133,7 +142,6 @@ const Register = () => {
       <Layout>
         <Layout.Section>
           <Card sectioned>
-            {/* <MuiThemeProvider theme={theme}> */}
             <div className={classes.root}>
               <div style={{ alignSelf: "center" }}>
                 <Stepper
@@ -163,7 +171,6 @@ const Register = () => {
                 })}
               </div>
             </div>
-            {/* </MuiThemeProvider> */}
           </Card>
         </Layout.Section>
       </Layout>

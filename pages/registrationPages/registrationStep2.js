@@ -21,7 +21,7 @@ const styles = (theme) => ({
   },
   button: {
     // margin: theme.spacing.unit,
-    backgroundColor: "#05bfa5",
+    backgroundColor: "#002366",
   },
   inputRoot: {
     fontSize: 12,
@@ -32,14 +32,13 @@ const styles = (theme) => ({
 });
 
 const RegistrationStep2 = (props) => {
-  console.log(props.promoCode, "promoCode");
   const phoneNumberErrorInvalid =
     props.phone && !isValidPhoneNumber(props.phone);
   const { classes } = props;
 
   return (
     <ValidatorForm onSubmit={props.handleNextStep2} autoComplete="off">
-      <Grid container spacing={32}>
+      <Grid container>
         <Grid item md={12} style={{ paddingTop: "25px", paddingBottom: "0px" }}>
           <TextContainer>
             <div style={{ paddingLeft: "10px" }}>
